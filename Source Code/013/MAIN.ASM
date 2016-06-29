@@ -1,0 +1,757 @@
+;This code is de'assemblered by HOLYCHIP shanghai Ltd.. 
+;Soft version 1.02
+;Thanks for using, find any bug, please report it to HC!
+
+          #include "HC18P013.inc"
+	  #include "RAM.INC"
+          list p = 18P013, R=DEC
+;********************************************
+;               RAM  START                  
+;******************************************** 
+;;;;;;;;;;;;;;;4M 2T
+
+
+          DATA	
+;;CONST          
+#Define PORTA_INI	b'00000000'	; PORTA端口初值 
+#Define PORTB_INI	b'00000000'	; PORTB端口初值  
+
+#Define TRISA_INI	b'00000000'	; PORTA方向初值  0 输出 1输入
+#Define TRISB_INI	b'00001000'	; PORTB方向初值
+
+#Define PHCON_INI	b'00000000'	; 上拉 0 使能 1禁止
+#Define PDCON_INI	b'11111111'	; 下拉 0 使能 1禁止 
+#Define ODCON_INI	b'00000000'	; 开漏输出      1 使能 0禁止
+
+#Define	OPTION_INI	b'10000000'	; X 上升沿下降沿 T0时钟源 T0计数沿选择 分频器派送 T0预分频1:2
+#DEFINE T0_INI	        212		; 4m4t，200us
+
+#DEFINE	PCON_INI	B'10111000'     ;WDT使能   外部int禁止	        
+#DEFINE	IOCB_INI	B'00001000'     ;PB 中断和唤醒 0 禁止
+
+#DEFINE	INTECON_INI	B'10000001'     ;WDT使能   外部int禁止	            
+	
+
+;********************************************
+;               CODE START                  
+;********************************************
+        CODE
+
+        ORG     0000H	
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP        
+        GOTO    RESET        
+                
+        ORG     0008H  							
+INT_START:
+
+	MOVWF	W_TEMP
+	SWAPF	W_TEMP,F	; SAVE W
+	SWAPF	STATUS,W
+	MOVWF	STATUS_TEMP	; SAVE STATUS
+        MOVF    PCLATH,W
+        MOVWF   PCLATH_TEMP	  		
+	BTFSS	T0IF		;100us
+	GOTO	INT_EXIT
+	BCF	T0IF
+
+	MOVLW	T0_INI
+	MOVWF	T0
+	
+INT_TIMEFLAG:
+
+;	MOVLW	B'00000010'
+;	XORWF	PORTB,F
+	INCF	CNT_100US,F
+	MOVLW	D'40'		;4MS
+	SUBWF	CNT_100US,W
+	BTFSS	C
+	GOTO	INT_TIMEFLAG_END
+	CLRF	CNT_100US
+	BSF	F_4MS_B
+INT_TIMEFLAG_END:
+
+;**************************************
+;过零检测函数	
+;**************************************
+INT_ZERO_CROSS_DET:
+
+	BTFSS	PIN_ZERO
+	GOTO	INT_ZERO_CROSS_H2L
+	
+INT_ZERO_CROSS_L2H:
+;	NOP
+;	NOP
+;	NOP
+;	NOP
+;	NOP
+;	BTFSS	PIN_ZERO
+;	GOTO	INT_ZERO_CROSS_DET_END
+	BSF	F_ZEROCROSS_H_B
+	BTFSS	F_ZEROCROSS_L_B
+	GOTO	INT_ZERO_CROSS_DET_END
+	BCF	F_ZEROCROSS_L_B		;;检测到上升沿
+INT_ZERO_CROSS_L2H_PROCESS:
+	BSF	F_ZERO_SURE_B	
+	MOVF	ZERO_CROSS_DELAY,W
+	MOVWF	ZERO_CROSS_DELAY_BUFF
+	MOVLW	CONST_ONSCR_TIME
+	MOVWF	CNT_ONSCR_TIME
+	GOTO	INT_ZERO_CROSS_DET_END
+	
+INT_ZERO_CROSS_H2L:
+;	NOP
+;	NOP
+;	NOP
+;	NOP
+;	NOP
+;	BTFSS	PIN_ZERO
+;	GOTO	INT_ZERO_CROSS_DET_END
+	BSF	F_ZEROCROSS_L_B
+	BTFSS	F_ZEROCROSS_H_B
+	GOTO	INT_ZERO_CROSS_DET_END
+	BCF	F_ZEROCROSS_H_B		;;检测到下降沿
+INT_ZERO_CROSS_H2L_PROCESS:
+	BSF	F_ZERO_SURE_B
+	MOVF	ZERO_CROSS_DELAY,W
+	MOVWF	ZERO_CROSS_DELAY_BUFF
+	MOVLW	CONST_ONSCR_TIME
+	MOVWF	CNT_ONSCR_TIME
+INT_ZERO_CROSS_DET_END:	
+;-----------------------------------------------------	
+
+;**************************************
+;SCR控制函数	
+;**************************************
+INT_SCR_ON_OFF_JUDGE:
+
+	MOVF	LAMPMODE,W
+	BTFSC	Z
+	GOTO	INT_SCR_OFF_PROCESS
+	BTFSS	F_ZERO_SURE_B
+	GOTO	INT_SCR_ON_OFF_JUDGE_END
+	MOVF	ZERO_CROSS_DELAY_BUFF,W
+	BTFSS	Z
+	GOTO	INT_SCR_ON_OFF_JUDGE_DELAY
+	MOVF	CNT_ONSCR_TIME,W
+	BTFSS	Z
+	GOTO	INT_SCR_ON_PROCESS
+INT_SCR_OFF_PROCESS:
+	
+	OFFSCR
+	BCF	F_ZERO_SURE_B
+	GOTO	INT_SCR_ON_OFF_JUDGE_END
+INT_SCR_ON_PROCESS:
+	
+	DECF	CNT_ONSCR_TIME,F
+	ONSCR
+	GOTO	INT_SCR_ON_OFF_JUDGE_END
+	
+INT_SCR_ON_OFF_JUDGE_DELAY:
+
+;	OFFSCR
+	DECF	ZERO_CROSS_DELAY_BUFF,F
+	
+INT_SCR_ON_OFF_JUDGE_END:
+
+INT_EXIT:
+
+        MOVF    PCLATH_TEMP,W
+        MOVWF   PCLATH										
+	SWAPF	STATUS_TEMP, W
+	MOVWF	STATUS				;恢复STATUS
+        SWAPF	W_TEMP, W			;恢复W		
+	RETFIE			
+;***************************************  	   
+RESET:   
+        CLRF    INTECON
+        CLRF    INTFLAG
+	CLRF	PCON    
+	CLRWDT
+ 
+;***************************************   
+	
+;***************************************      
+;IO
+
+	MOVLW	PORTA_INI
+	MOVWF	PORTA
+		
+	MOVLW	TRISA_INI
+	MOVWF	TRISA
+		
+	MOVLW	PORTB_INI
+	MOVWF	PORTB
+
+	MOVLW	TRISB_INI
+	MOVWF	TRISB
+	
+	MOVLW	ODCON_INI
+	MOVWF	ODCON	
+	
+	MOVLW	PHCON_INI
+	MOVWF	PHCON	
+
+	MOVLW	PDCON_INI
+	MOVWF	PDCON
+	
+	MOVLW	IOCB_INI
+	MOVWF	IOCB	
+	
+;***************************************	
+;;;;;;CLRF RAM 自减
+;;;;;
+;;;;;#Define C_RAM_START	0x3f
+;;;;;#Define C_RAM_END		0xd0
+;;;;;        CLRF    TEMP_BUF
+;;;;;	
+;;;;;	MOVLW	C_RAM_START
+;;;;;	MOVWF	FSR
+;;;;;	
+;;;;;_INI_RAM_Loop
+;;;;;	CLRF	INDF
+;;;;;	decf	FSR, F
+;;;;;
+;;;;;        MOVF    FSR,W
+;;;;; ;       IORLW   C_RAM_END       ;比较时,需要将fsr的高两位置1,否则仿真编译可以过,烧出的芯片没错!这是自家的时候!
+;;;;;	XORLW	C_RAM_END        ;自减清ram的时候,初值给3f,减到D0H,停止自减,然后再把D0H清一下!D0H相当于是10h!因为高两位是1.
+;;;;;	BTFSS	Z                ;自加清ram的时候,初值给10h,判断到c0h停止自加,不用再请c0h,3f清完,加一就变成c0h了,相当于00h.
+;;;;;	GOTO	_INI_RAM_Loop 
+;;;;;	CLRF	INDF 
+;;;;;	
+;***************************************	
+;CLRF RAM 自加
+;#Define C_RAM_START		0x10
+;#Define C_RAM_END		0xC0
+        CLRF    0X07
+	
+	MOVLW	C_RAM_START
+	MOVWF	FSR
+	
+_INI_RAM_Loop:
+	CLRF	INDF
+	INCF	FSR, F
+
+        MOVF    FSR,W
+	XORLW	C_RAM_END 
+	BTFSS	Z         
+	GOTO	_INI_RAM_Loop 
+	
+;***************************************	
+
+;***************************************
+;T0
+
+	MOVLW	OPTION_INI		 
+	MOVWF	OPTION
+
+	MOVLW	T0_INI
+        MOVWF   T0
+
+	BCF	T0IF
+	
+	MOVLW	PCON_INI
+	MOVWF	PCON
+	
+	MOVLW   INTECON_INI
+	MOVWF   INTECON
+	
+;┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+;┃主循环							 ┃
+;┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+MAINLOOP:
+
+	CLRWDT
+	BTFSS	F_4MS_B
+	GOTO	MAINLOOP
+	BCF	F_4MS_B
+;	MOVLW	B'00000010'
+;	XORWF	PORTB,F
+	CALL	TIMER_PROCESS
+	CALL	M_KEY_PROCESS
+	CALL	M_DIS_DATA_PROCESS
+	CALL	M_DIS_PROCESS
+	GOTO	MAINLOOP
+;-------------------------------------------------
+
+
+TIMER_PROCESS:
+
+	BTFSS	F_STATUS_ON_B
+	GOTO	TIMER_PROCESS_END
+	INCF	CNT_4MS,F
+	MOVLW	D'250'
+	SUBWF	CNT_4MS,W
+	BTFSS	C
+	GOTO	TIMER_PROCESS_END
+	CLRF	CNT_4MS
+	INCF	SECOND,F
+	MOVLW	D'60'
+	XORWF	SECOND,W
+	BTFSS	Z
+	GOTO	TIMER_PROCESS_END
+	CLRF	SECOND
+	DECFSZ	CNT_TIME,F
+	GOTO	TIMER_PROCESS_END
+	BCF	F_STATUS_ON_B
+	CLRF	LAMPMODE
+	
+TIMER_PROCESS_OFF:
+
+	CLRF	SECOND
+	CLRF	CNT_4MS
+	
+TIMER_PROCESS_END:
+
+	RETURN	
+;---------------------------------	
+	
+;*********************************	
+;;;;;;;;按键扫描函数	
+;*********************************
+M_KEY_PROCESS:
+
+	MOVF	PORTB,W
+	MOVWF	PORTB_OUTPUT_BUFF
+	BSF	PIN_DY_COM1
+	BSF	PIN_DY_COM2
+	BSF	PIN_DY_COM3
+	MOVLW	B'11111111'
+	MOVWF	PORTB
+	MOVLW	B'11111000'
+	MOVWF	TRISB
+	MOVLW	D'30'
+	MOVWF	DELAYLOOP
+	CALL	DELAY100US
+	MOVF	PORTB,W
+	MOVWF	PORTB_BUFF
+	MOVLW	B'00000000'
+	MOVWF	TRISB
+	MOVF	PORTB_OUTPUT_BUFF,W
+	MOVWF	PORTB
+	MOVLW	B'11110000'
+	ANDWF	PORTB_BUFF,F
+	XORWF	PORTB_BUFF,W
+
+M_KEY_PROCESS_JUDGE:
+
+	BTFSC	Z
+	GOTO	M_KEY_PROCESS_JUDGE_H
+M_KEY_PROCESS_JUDGE_L:
+
+	CLRF	CNT_KEY_H
+	INCF	CNT_KEY_L,F
+	MOVLW	CONST_KEYDEBOUNCE_TIME
+	SUBWF	CNT_KEY_L,W
+	BTFSS	C
+	GOTO	M_KEY_PROCESS_END
+	CLRF	CNT_KEY_L
+	;BSF	F_KEYLOCK_B
+	GOTO	M_KEY_PROCESS_JUDGE_KEY
+	
+M_KEY_PROCESS_JUDGE_H:
+
+	CLRF	CNT_KEY_L
+	INCF	CNT_KEY_H,F
+	MOVLW	CONST_KEYDEBOUNCE_TIME
+	SUBWF	CNT_KEY_H,W
+	BTFSS	C
+	GOTO	M_KEY_PROCESS_END
+	CLRF	CNT_KEY_LONG_PRESS
+	CLRF	CNT_KEY_H
+;	CLRF	PORTB_BUFF		;清零
+	BCF	F_KEYLOCK_B
+	GOTO	M_KEY_PROCESS_END
+	
+M_KEY_PROCESS_JUDGE_KEY:
+
+	BTFSS	PORTB_BUFF,7
+	GOTO	M_KEY_PROCESS_KEY_ON_OR_OFF
+	BTFSS	PORTB_BUFF,5			;按键如何防止多个按键长按及误操作？
+	GOTO	M_KEY_PROCESS_KEY_INC
+	BTFSS	PORTB_BUFF,4
+	GOTO	M_KEY_PROCESS_KEY_DEC
+	BTFSS	PORTB_BUFF,6
+	GOTO	M_KEY_PROCESS_KEY_CHOOSE
+	GOTO	M_KEY_PROCESS_END
+	
+M_KEY_PROCESS_KEY_ON_OR_OFF:
+
+	BTFSC	F_KEYLOCK_B
+	GOTO	M_KEY_PROCESS_END
+	BTFSS	F_STATUS_ON_B
+	GOTO	M_KEY_PROCESS_KEY_ON
+M_KEY_PROCESS_KEY_OFF:
+
+	BCF	F_STATUS_ON_B
+	CLRF	LAMPMODE			;用于LED的显示
+	MOVLW	CONST_DEFAULT_OFF_DATA_COM
+	MOVWF	CNT_TIME
+	BSF	F_KEYLOCK_B
+	GOTO	M_KEY_PROCESS_END
+	
+M_KEY_PROCESS_KEY_ON:
+
+	BSF	F_STATUS_ON_B	
+	MOVLW	D'1'
+	MOVWF	LAMPMODE	
+	MOVLW	CONST_LAMPLOW		
+	MOVWF	ZERO_CROSS_DELAY
+	MOVLW	CONST_DEFAULT_ON_DATA_COM
+	MOVWF	CNT_TIME
+	BSF	F_KEYLOCK_B
+	GOTO	M_KEY_PROCESS_END
+	
+M_KEY_PROCESS_KEY_CHOOSE:
+	
+	BTFSS	F_KEYLOCK_B
+	BTFSS	F_STATUS_ON_B
+	GOTO	M_KEY_PROCESS_END
+	BSF	F_KEYLOCK_B
+	MOVLW	D'3'
+	XORWF	LAMPMODE,W
+	BTFSC	Z
+	CLRF	LAMPMODE
+	INCF	LAMPMODE,F
+LAMPMODE_JUDGE:
+
+	BTFSS	LAMPMODE,1
+	GOTO	LAMPMODE_L
+	BTFSS	LAMPMODE,0
+	GOTO	LAMPMODE_M
+	GOTO	LAMPMODE_H
+LAMPMODE_L:
+
+	MOVLW	CONST_LAMPLOW
+	MOVWF	ZERO_CROSS_DELAY
+	GOTO	M_KEY_PROCESS_END
+	
+LAMPMODE_M:
+
+	MOVLW	CONST_LAMPMID
+	MOVWF	ZERO_CROSS_DELAY
+	GOTO	M_KEY_PROCESS_END
+	
+LAMPMODE_H:
+
+	MOVLW	CONST_LAMPHIGH
+	MOVWF	ZERO_CROSS_DELAY
+	GOTO	M_KEY_PROCESS_END
+	
+M_KEY_PROCESS_KEY_INC:
+
+	BTFSC	F_KEYLOCK_B
+	GOTO	M_KEY_PROCESS_KEY_INC_LONG
+	BTFSS	F_STATUS_ON_B
+	GOTO	M_KEY_PROCESS_END
+	BSF	F_KEYLOCK_B
+	CLRF	SECOND
+	MOVLW	D'60'
+	XORWF	CNT_TIME,W
+	BTFSS	Z
+	INCF	CNT_TIME,F
+	GOTO	M_KEY_PROCESS_END
+	
+M_KEY_PROCESS_KEY_INC_LONG:
+
+	INCF	CNT_KEY_LONG_PRESS,F
+	MOVLW	CONST_KEY_LONG_PRESS
+	SUBWF	CNT_KEY_LONG_PRESS,W
+	BTFSS	C
+	GOTO	M_KEY_PROCESS_END
+	CLRF	CNT_KEY_LONG_PRESS
+	MOVLW	D'60'
+	XORWF	CNT_TIME,W
+	BTFSS	Z
+	INCF	CNT_TIME,F
+	GOTO	M_KEY_PROCESS_END	
+
+M_KEY_PROCESS_KEY_DEC:	
+	
+	BTFSC	F_KEYLOCK_B
+	GOTO	M_KEY_PROCESS_KEY_DEC_LONG
+	BTFSS	F_STATUS_ON_B
+	GOTO	M_KEY_PROCESS_END
+	BSF	F_KEYLOCK_B
+	CLRF	SECOND
+	DECFSZ	CNT_TIME,W
+	DECF	CNT_TIME,F
+	GOTO	M_KEY_PROCESS_END
+	
+M_KEY_PROCESS_KEY_DEC_LONG:
+
+	INCF	CNT_KEY_LONG_PRESS,F
+	MOVLW	CONST_KEY_LONG_PRESS
+	SUBWF	CNT_KEY_LONG_PRESS,W
+	BTFSS	C
+	GOTO	M_KEY_PROCESS_END
+	CLRF	CNT_KEY_LONG_PRESS
+	DECFSZ	CNT_TIME,W
+	DECF	CNT_TIME,F
+	GOTO	M_KEY_PROCESS_END
+	
+M_KEY_PROCESS_END:
+	
+	RETURN
+;-----------------------------------------------------
+
+;*********************************************
+;数码管显示数据处理函数
+;*********************************************
+M_DIS_DATA_PROCESS:
+
+	BTFSS	F_STATUS_ON_B
+	GOTO	OFF_DISP
+	MOVLW	D'10'
+	MOVWF	CHUSHU
+	MOVF	CNT_TIME,W
+	CALL	DIV
+	MOVF	SHANG,W
+	MOVWF	COM1_DATA
+	MOVF	YUSHU,W
+	MOVWF	COM2_DATA
+	GOTO	M_DIS_DATA_PROCESS_END	
+	
+OFF_DISP:
+
+	MOVLW	D'10'
+	MOVWF	COM1_DATA
+	MOVWF	COM2_DATA
+	
+M_DIS_DATA_PROCESS_END:
+
+	RETURN	
+;-------------------------------------------
+
+;*********************************************
+;数码管显示处理函数-共扫描3个COM口
+;*********************************************
+M_DIS_PROCESS:
+
+	MOVLW	D'3'
+	XORWF	CNT_COM_SCAN,W
+	BTFSC	Z
+	CLRF	CNT_COM_SCAN
+	INCF	CNT_COM_SCAN,F
+	MOVLW	HIGH	M_DIS_PROCESS_COM_SCAN
+	MOVWF	PCLATH
+	MOVF	CNT_COM_SCAN,W
+	CALL	M_DIS_PROCESS_COM_SCAN
+	GOTO	M_DIS_PROCESS_END
+	
+M_DIS_PROCESS_COM_SCAN:
+	
+	ADDWF	PCL,F
+	NOP
+	GOTO	M_DIS_PROCESS_COM1_SCAN
+	GOTO	M_DIS_PROCESS_COM2_SCAN
+	GOTO	M_DIS_PROCESS_COM3_SCAN
+
+M_DIS_PROCESS_COM1_SCAN:
+
+	CALL	CLEAR_COM_DATA
+	BCF	PIN_DY_COM1		;开COM1显示
+	MOVLW	HIGH	TABLE_DY_NE
+	MOVWF	PCLATH
+	MOVF	COM1_DATA,W
+	CALL	TABLE_DY_NE
+	MOVWF	COM_DATA
+	CALL	COM_DATA_DIS
+	GOTO	M_DIS_PROCESS_COM_SCAN_END
+	
+M_DIS_PROCESS_COM2_SCAN:
+
+	CALL	CLEAR_COM_DATA
+	BCF	PIN_DY_COM2		;开COM2显示
+	MOVLW	HIGH	TABLE_DY_NE
+	MOVWF	PCLATH
+	MOVF	COM2_DATA,W
+	CALL	TABLE_DY_NE
+	MOVWF	COM_DATA
+	CALL	COM_DATA_DIS
+	GOTO	M_DIS_PROCESS_COM_SCAN_END
+
+M_DIS_PROCESS_COM3_SCAN:
+
+	CALL	CLEAR_COM_DATA
+	BCF	PIN_DY_COM3		;开COM3显示
+	MOVLW	HIGH	COM3_SWITCH
+	MOVWF	PCLATH
+	MOVF	LAMPMODE,W
+	CALL	COM3_SWITCH
+
+M_DIS_PROCESS_COM3_SCAN_END:
+
+	RETURN
+	
+COM3_SWITCH:
+
+	ADDWF	PCL,F
+	GOTO	LED_ALL_OFF
+	GOTO	LED_LOW_ON
+	GOTO	LED_MEDIUM_ON
+	GOTO	LED_HIGH_ON	
+	
+LED_ALL_OFF:
+
+	OFFLED
+	GOTO	M_DIS_PROCESS_COM_SCAN_END
+		
+LED_LOW_ON:
+
+	ONLEDL
+	GOTO	M_DIS_PROCESS_COM_SCAN_END
+
+LED_MEDIUM_ON:
+
+	ONLEDM
+	GOTO	M_DIS_PROCESS_COM_SCAN_END
+
+LED_HIGH_ON:
+
+	ONLEDH
+	GOTO	M_DIS_PROCESS_COM_SCAN_END
+
+M_DIS_PROCESS_COM_SCAN_END:
+
+	RETURN
+;---------------------------------------------
+	
+;=============================================
+;COM数据送IO口函数
+;=============================================
+COM_DATA_DIS:
+	
+	BTFSC	COM_DATA,0
+	BSF	PIN_DY_A
+	BTFSC	COM_DATA,1
+	BSF	PIN_DY_B
+	BTFSC	COM_DATA,2
+	BSF	PIN_DY_C
+	BTFSC	COM_DATA,3
+	BSF	PIN_DY_D
+	BTFSC	COM_DATA,4
+	BSF	PIN_DY_E
+	BTFSC	COM_DATA,5
+	BSF	PIN_DY_F
+	BTFSC	COM_DATA,6
+	BSF	PIN_DY_G
+COM_DATA_DIS_END:
+
+	RETURN
+;---------------------------------------------
+
+;***************************************
+;数码管清除显示函数-数码管刷新前调用
+;***************************************	
+CLEAR_COM_DATA:
+
+	CLRF	PORTB
+	BSF	PIN_DY_COM1
+	BSF	PIN_DY_COM2
+	BSF	PIN_DY_COM3
+	
+CLEAR_COM_DATA_END:
+
+	RETURN
+;----------------------------------------------
+	
+M_DIS_PROCESS_END:
+
+	RETURN
+;=======================================================================
+;		除法，当除数为10时，即二进制-->BCD码转换
+;入口参数：一个八位二进制数作为被除数(事先需要将被除数移入W)，一个除数
+;出口参数：一个八位二进制数-商，一个八位二进制数-余数，用来查表
+;=======================================================================
+
+DIV:
+
+	MOVWF	BEICHUSHU
+	MOVLW	D'8'
+	MOVWF	CNT_DIV
+	CLRF	SHANG
+	CLRF	YUSHU
+	
+DIVLOOP:	
+	
+	BCF	C
+	RLF	BEICHUSHU,F
+	RLF	YUSHU,F
+	MOVF	CHUSHU,W
+	SUBWF	YUSHU,W
+	BTFSC	C
+	MOVWF	YUSHU
+	RLF	SHANG,F
+	DECFSZ	CNT_DIV,F
+	GOTO	DIVLOOP
+	RETURN
+;----------------------------------------
+
+;****************************************
+;delay函数
+;****************************************
+DELAY100US:
+
+	GOTO	$+1
+	GOTO	$+1
+	GOTO	$+1
+	GOTO	$+1
+	GOTO	$+1
+	DECFSZ	DELAYLOOP,F
+	GOTO	DELAY100US
+	RETURN
+;----------------------------------------
+
+;****************************************
+;数码管表--共阴1G2DP3A4F526D7E8C9B101
+;****************************************	
+	ORG	0300H
+;共阴极数码管
+TABLE_DY_NE:			
+	
+	ADDWF	PCL,F
+	RETLW	B'00111111'	;0
+	RETLW	B'00000110'	;1
+	RETLW	B'01011011'	;2
+	RETLW	B'01001111'	;3
+	RETLW	B'01100110'	;4
+	RETLW	B'01101101'	;5
+	RETLW	B'01111101'	;6
+	RETLW	B'00000111'	;7
+	RETLW	B'01111111'	;8
+	RETLW	B'01101111'	;9
+	RETLW	B'00000000'	;10-OFF DISPLAY
+	
+;共阳极数码管	
+TABLE_DY_PE:			
+
+	ADDWF	PCL,F
+	RETLW	B'11000000'	;0
+	RETLW	B'11111001'	;1
+	RETLW	B'10100100'	;2
+	RETLW	B'10110000'	;3
+	RETLW	B'10011001'	;4
+	RETLW	B'10010010'	;5
+	RETLW	B'10000010'	;6
+	RETLW	B'11111000'	;7
+	RETLW	B'10000000'	;8
+	RETLW	B'10010000'	;9
+	RETLW	B'11111111'	;10-OFF DISPLAY
+;-------------------------------------------
+		
+;********************************************  
+;********************************************
+        ORG     03FFH                   ; 飞凌的才有用!        
+        GOTO    RESET                           
+        END
+
+
+;********************************************
+;               CODE END                    
+;********************************************

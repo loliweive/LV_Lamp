@@ -1,0 +1,28 @@
+[Project]
+Project=HC-ICE
+[File Count]
+Count=3
+[Project Files]
+File0=HC18P013.INC
+File1=MAIN.ASM
+File2=RAM.INC
+[Settings]
+Device=HC18P010S
+ConfigBitValue0=1
+ConfigBitValue1=64
+ConfigBitValue2=247
+Output=.
+PostBuild=0
+PostBuildCommand=
+[Files]
+File0=G:\LV\LAMP\SOURCE CODE\013\RAM.INC|3 25 907 25 474
+OpenFileCounts=2
+File1=G:\LV\LAMP\SOURCE CODE\013\MAIN.ASM|1 0 878 0 445
+[Break]
+Count=0
+[Watch0]
+Count=0
+[Watch1]
+Count=0
+[Watch2]
+Count=0

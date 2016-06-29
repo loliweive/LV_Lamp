@@ -13,23 +13,23 @@
 
           DATA	
 ;;CONST          
-#Define PORTA_INI	b'00000000'	; PORTA¶Ë¿Ú³õÖµ 
-#Define PORTB_INI	b'00000000'	; PORTB¶Ë¿Ú³õÖµ  
+#Define PORTA_INI	b'00000000'	; PORTAç«¯å£åˆå€¼ 
+#Define PORTB_INI	b'00000000'	; PORTBç«¯å£åˆå€¼  
 
-#Define TRISA_INI	b'00000000'	; PORTA·½Ïò³õÖµ  0 Êä³ö 1ÊäÈë
-#Define TRISB_INI	b'00001000'	; PORTB·½Ïò³õÖµ
+#Define TRISA_INI	b'00000000'	; PORTAæ–¹å‘åˆå€¼  0 è¾“å‡º 1è¾“å…¥
+#Define TRISB_INI	b'00001000'	; PORTBæ–¹å‘åˆå€¼
 
-#Define PHCON_INI	b'00000000'	; ÉÏÀ­ 0 Ê¹ÄÜ 1½ûÖ¹
-#Define PDCON_INI	b'11111111'	; ÏÂÀ­ 0 Ê¹ÄÜ 1½ûÖ¹ 
-#Define ODCON_INI	b'00000000'	; ¿ªÂ©Êä³ö      1 Ê¹ÄÜ 0½ûÖ¹
+#Define PHCON_INI	b'00000000'	; ä¸Šæ‹‰ 0 ä½¿èƒ½ 1ç¦æ­¢
+#Define PDCON_INI	b'11111111'	; ä¸‹æ‹‰ 0 ä½¿èƒ½ 1ç¦æ­¢ 
+#Define ODCON_INI	b'00000000'	; å¼€æ¼è¾“å‡º      1 ä½¿èƒ½ 0ç¦æ­¢
 
-#Define	OPTION_INI	b'10000000'	; X ÉÏÉýÑØÏÂ½µÑØ T0Ê±ÖÓÔ´ T0¼ÆÊýÑØÑ¡Ôñ ·ÖÆµÆ÷ÅÉËÍ T0Ô¤·ÖÆµ1:2
-#DEFINE T0_INI	        212		; 4m4t£¬200us
+#Define	OPTION_INI	b'10000000'	; X ä¸Šå‡æ²¿ä¸‹é™æ²¿ T0æ—¶é’Ÿæº T0è®¡æ•°æ²¿é€‰æ‹© åˆ†é¢‘å™¨æ´¾é€ T0é¢„åˆ†é¢‘1:2
+#DEFINE T0_INI	        168		; 4m2tï¼Œ100us
 
-#DEFINE	PCON_INI	B'10111000'     ;WDTÊ¹ÄÜ   Íâ²¿int½ûÖ¹	        
-#DEFINE	IOCB_INI	B'00001000'     ;PB ÖÐ¶ÏºÍ»½ÐÑ 0 ½ûÖ¹
+#DEFINE	PCON_INI	B'10111000'     ;WDTä½¿èƒ½   å¤–éƒ¨intç¦æ­¢	        
+#DEFINE	IOCB_INI	B'00001000'     ;PB ä¸­æ–­å’Œå”¤é†’ 0 ç¦æ­¢
 
-#DEFINE	INTECON_INI	B'10000001'     ;WDTÊ¹ÄÜ   Íâ²¿int½ûÖ¹	            
+#DEFINE	INTECON_INI	B'10000001'     ;WDTä½¿èƒ½   å¤–éƒ¨intç¦æ­¢	            
 	
 
 ;********************************************
@@ -65,8 +65,6 @@ INT_START:
 	
 INT_TIMEFLAG:
 
-;	MOVLW	B'00000010'
-;	XORWF	PORTB,F
 	INCF	CNT_100US,F
 	MOVLW	D'40'		;4MS
 	SUBWF	CNT_100US,W
@@ -77,25 +75,21 @@ INT_TIMEFLAG:
 INT_TIMEFLAG_END:
 
 ;**************************************
-;¹ýÁã¼ì²âº¯Êý	
+;è¿‡é›¶æ£€æµ‹å‡½æ•°	
 ;**************************************
 INT_ZERO_CROSS_DET:
 
+	BTFSS	F_STATUS_ON_B
+	GOTO	INT_SCR_ON_OFF_JUDGE_END
 	BTFSS	PIN_ZERO
 	GOTO	INT_ZERO_CROSS_H2L
 	
 INT_ZERO_CROSS_L2H:
-;	NOP
-;	NOP
-;	NOP
-;	NOP
-;	NOP
-;	BTFSS	PIN_ZERO
-;	GOTO	INT_ZERO_CROSS_DET_END
+
 	BSF	F_ZEROCROSS_H_B
 	BTFSS	F_ZEROCROSS_L_B
 	GOTO	INT_ZERO_CROSS_DET_END
-	BCF	F_ZEROCROSS_L_B		;;¼ì²âµ½ÉÏÉýÑØ
+	BCF	F_ZEROCROSS_L_B		;;æ£€æµ‹åˆ°ä¸Šå‡æ²¿
 INT_ZERO_CROSS_L2H_PROCESS:
 	BSF	F_ZERO_SURE_B	
 	MOVF	ZERO_CROSS_DELAY,W
@@ -105,17 +99,11 @@ INT_ZERO_CROSS_L2H_PROCESS:
 	GOTO	INT_ZERO_CROSS_DET_END
 	
 INT_ZERO_CROSS_H2L:
-;	NOP
-;	NOP
-;	NOP
-;	NOP
-;	NOP
-;	BTFSS	PIN_ZERO
-;	GOTO	INT_ZERO_CROSS_DET_END
+
 	BSF	F_ZEROCROSS_L_B
 	BTFSS	F_ZEROCROSS_H_B
 	GOTO	INT_ZERO_CROSS_DET_END
-	BCF	F_ZEROCROSS_H_B		;;¼ì²âµ½ÏÂ½µÑØ
+	BCF	F_ZEROCROSS_H_B		;;æ£€æµ‹åˆ°ä¸‹é™æ²¿
 INT_ZERO_CROSS_H2L_PROCESS:
 	BSF	F_ZERO_SURE_B
 	MOVF	ZERO_CROSS_DELAY,W
@@ -126,7 +114,7 @@ INT_ZERO_CROSS_DET_END:
 ;-----------------------------------------------------	
 
 ;**************************************
-;SCR¿ØÖÆº¯Êý	
+;SCRæŽ§åˆ¶å‡½æ•°	
 ;**************************************
 INT_SCR_ON_OFF_JUDGE:
 
@@ -164,8 +152,8 @@ INT_EXIT:
         MOVF    PCLATH_TEMP,W
         MOVWF   PCLATH										
 	SWAPF	STATUS_TEMP, W
-	MOVWF	STATUS				;»Ö¸´STATUS
-        SWAPF	W_TEMP, W			;»Ö¸´W		
+	MOVWF	STATUS				;æ¢å¤STATUS
+        SWAPF	W_TEMP, W			;æ¢å¤W		
 	RETFIE			
 ;***************************************  	   
 RESET:   
@@ -204,7 +192,7 @@ RESET:
 	MOVWF	IOCB	
 	
 ;***************************************	
-;;;;;;CLRF RAM ×Ô¼õ
+;;;;;;CLRF RAM è‡ªå‡
 ;;;;;
 ;;;;;#Define C_RAM_START	0x3f
 ;;;;;#Define C_RAM_END		0xd0
@@ -218,14 +206,14 @@ RESET:
 ;;;;;	decf	FSR, F
 ;;;;;
 ;;;;;        MOVF    FSR,W
-;;;;; ;       IORLW   C_RAM_END       ;±È½ÏÊ±,ÐèÒª½«fsrµÄ¸ßÁ½Î»ÖÃ1,·ñÔò·ÂÕæ±àÒë¿ÉÒÔ¹ý,ÉÕ³öµÄÐ¾Æ¬Ã»´í!ÕâÊÇ×Ô¼ÒµÄÊ±ºò!
-;;;;;	XORLW	C_RAM_END        ;×Ô¼õÇåramµÄÊ±ºò,³õÖµ¸ø3f,¼õµ½D0H,Í£Ö¹×Ô¼õ,È»ºóÔÙ°ÑD0HÇåÒ»ÏÂ!D0HÏàµ±ÓÚÊÇ10h!ÒòÎª¸ßÁ½Î»ÊÇ1.
-;;;;;	BTFSS	Z                ;×Ô¼ÓÇåramµÄÊ±ºò,³õÖµ¸ø10h,ÅÐ¶Ïµ½c0hÍ£Ö¹×Ô¼Ó,²»ÓÃÔÙÇëc0h,3fÇåÍê,¼ÓÒ»¾Í±ä³Éc0hÁË,Ïàµ±ÓÚ00h.
+;;;;; ;       IORLW   C_RAM_END       ;æ¯”è¾ƒæ—¶,éœ€è¦å°†fsrçš„é«˜ä¸¤ä½ç½®1,å¦åˆ™ä»¿çœŸç¼–è¯‘å¯ä»¥è¿‡,çƒ§å‡ºçš„èŠ¯ç‰‡æ²¡é”™!è¿™æ˜¯è‡ªå®¶çš„æ—¶å€™!
+;;;;;	XORLW	C_RAM_END        ;è‡ªå‡æ¸…ramçš„æ—¶å€™,åˆå€¼ç»™3f,å‡åˆ°D0H,åœæ­¢è‡ªå‡,ç„¶åŽå†æŠŠD0Hæ¸…ä¸€ä¸‹!D0Hç›¸å½“äºŽæ˜¯10h!å› ä¸ºé«˜ä¸¤ä½æ˜¯1.
+;;;;;	BTFSS	Z                ;è‡ªåŠ æ¸…ramçš„æ—¶å€™,åˆå€¼ç»™10h,åˆ¤æ–­åˆ°c0håœæ­¢è‡ªåŠ ,ä¸ç”¨å†è¯·c0h,3fæ¸…å®Œ,åŠ ä¸€å°±å˜æˆc0häº†,ç›¸å½“äºŽ00h.
 ;;;;;	GOTO	_INI_RAM_Loop 
 ;;;;;	CLRF	INDF 
 ;;;;;	
 ;***************************************	
-;CLRF RAM ×Ô¼Ó
+;CLRF RAM è‡ªåŠ 
 ;#Define C_RAM_START		0x10
 ;#Define C_RAM_END		0xC0
         CLRF    0X07
@@ -261,9 +249,9 @@ _INI_RAM_Loop:
 	MOVLW   INTECON_INI
 	MOVWF   INTECON
 	
-;©³©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©·
-;©§Ö÷Ñ­»·							 ©§
-;©»©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¥©¿
+;â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”“
+;â”ƒä¸»å¾ªçŽ¯							 â”ƒ
+;â”—â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”›
 MAINLOOP:
 
 	CLRWDT
@@ -312,7 +300,7 @@ TIMER_PROCESS_END:
 ;---------------------------------	
 	
 ;*********************************	
-;;;;;;;;°´¼üÉ¨Ãèº¯Êý	
+;;;;;;;;æŒ‰é”®æ‰«æå‡½æ•°	
 ;*********************************
 M_KEY_PROCESS:
 
@@ -364,7 +352,7 @@ M_KEY_PROCESS_JUDGE_H:
 	GOTO	M_KEY_PROCESS_END
 	CLRF	CNT_KEY_LONG_PRESS
 	CLRF	CNT_KEY_H
-;	CLRF	PORTB_BUFF		;ÇåÁã
+;	CLRF	PORTB_BUFF		;æ¸…é›¶
 	BCF	F_KEYLOCK_B
 	GOTO	M_KEY_PROCESS_END
 	
@@ -372,7 +360,7 @@ M_KEY_PROCESS_JUDGE_KEY:
 
 	BTFSS	PORTB_BUFF,7
 	GOTO	M_KEY_PROCESS_KEY_ON_OR_OFF
-	BTFSS	PORTB_BUFF,5			;°´¼üÈçºÎ·ÀÖ¹¶à¸ö°´¼ü³¤°´¼°Îó²Ù×÷£¿
+	BTFSS	PORTB_BUFF,5			;æŒ‰é”®å¦‚ä½•é˜²æ­¢å¤šä¸ªæŒ‰é”®é•¿æŒ‰åŠè¯¯æ“ä½œï¼Ÿ
 	GOTO	M_KEY_PROCESS_KEY_INC
 	BTFSS	PORTB_BUFF,4
 	GOTO	M_KEY_PROCESS_KEY_DEC
@@ -389,7 +377,7 @@ M_KEY_PROCESS_KEY_ON_OR_OFF:
 M_KEY_PROCESS_KEY_OFF:
 
 	BCF	F_STATUS_ON_B
-	CLRF	LAMPMODE			;ÓÃÓÚLEDµÄÏÔÊ¾
+	CLRF	LAMPMODE			;ç”¨äºŽLEDçš„æ˜¾ç¤º
 	MOVLW	CONST_DEFAULT_OFF_DATA_COM
 	MOVWF	CNT_TIME
 	BSF	F_KEYLOCK_B
@@ -501,7 +489,7 @@ M_KEY_PROCESS_END:
 ;-----------------------------------------------------
 
 ;*********************************************
-;ÊýÂë¹ÜÏÔÊ¾Êý¾Ý´¦Àíº¯Êý
+;æ•°ç ç®¡æ˜¾ç¤ºæ•°æ®å¤„ç†å‡½æ•°
 ;*********************************************
 M_DIS_DATA_PROCESS:
 
@@ -529,7 +517,7 @@ M_DIS_DATA_PROCESS_END:
 ;-------------------------------------------
 
 ;*********************************************
-;ÊýÂë¹ÜÏÔÊ¾´¦Àíº¯Êý-¹²É¨Ãè3¸öCOM¿Ú
+;æ•°ç ç®¡æ˜¾ç¤ºå¤„ç†å‡½æ•°-å…±æ‰«æ3ä¸ªCOMå£
 ;*********************************************
 M_DIS_PROCESS:
 
@@ -555,7 +543,7 @@ M_DIS_PROCESS_COM_SCAN:
 M_DIS_PROCESS_COM1_SCAN:
 
 	CALL	CLEAR_COM_DATA
-	BCF	PIN_DY_COM1		;¿ªCOM1ÏÔÊ¾
+	BCF	PIN_DY_COM1		;å¼€COM1æ˜¾ç¤º
 	MOVLW	HIGH	TABLE_DY_NE
 	MOVWF	PCLATH
 	MOVF	COM1_DATA,W
@@ -567,7 +555,7 @@ M_DIS_PROCESS_COM1_SCAN:
 M_DIS_PROCESS_COM2_SCAN:
 
 	CALL	CLEAR_COM_DATA
-	BCF	PIN_DY_COM2		;¿ªCOM2ÏÔÊ¾
+	BCF	PIN_DY_COM2		;å¼€COM2æ˜¾ç¤º
 	MOVLW	HIGH	TABLE_DY_NE
 	MOVWF	PCLATH
 	MOVF	COM2_DATA,W
@@ -579,7 +567,7 @@ M_DIS_PROCESS_COM2_SCAN:
 M_DIS_PROCESS_COM3_SCAN:
 
 	CALL	CLEAR_COM_DATA
-	BCF	PIN_DY_COM3		;¿ªCOM3ÏÔÊ¾
+	BCF	PIN_DY_COM3		;å¼€COM3æ˜¾ç¤º
 	MOVLW	HIGH	COM3_SWITCH
 	MOVWF	PCLATH
 	MOVF	LAMPMODE,W
@@ -623,7 +611,7 @@ M_DIS_PROCESS_COM_SCAN_END:
 ;---------------------------------------------
 	
 ;=============================================
-;COMÊý¾ÝËÍIO¿Úº¯Êý
+;COMæ•°æ®é€IOå£å‡½æ•°
 ;=============================================
 COM_DATA_DIS:
 	
@@ -647,7 +635,7 @@ COM_DATA_DIS_END:
 ;---------------------------------------------
 
 ;***************************************
-;ÊýÂë¹ÜÇå³ýÏÔÊ¾º¯Êý-ÊýÂë¹ÜË¢ÐÂÇ°µ÷ÓÃ
+;æ•°ç ç®¡æ¸…é™¤æ˜¾ç¤ºå‡½æ•°-æ•°ç ç®¡åˆ·æ–°å‰è°ƒç”¨
 ;***************************************	
 CLEAR_COM_DATA:
 
@@ -665,9 +653,9 @@ M_DIS_PROCESS_END:
 
 	RETURN
 ;=======================================================================
-;		³ý·¨£¬µ±³ýÊýÎª10Ê±£¬¼´¶þ½øÖÆ-->BCDÂë×ª»»
-;Èë¿Ú²ÎÊý£ºÒ»¸ö°ËÎ»¶þ½øÖÆÊý×÷Îª±»³ýÊý(ÊÂÏÈÐèÒª½«±»³ýÊýÒÆÈëW)£¬Ò»¸ö³ýÊý
-;³ö¿Ú²ÎÊý£ºÒ»¸ö°ËÎ»¶þ½øÖÆÊý-ÉÌ£¬Ò»¸ö°ËÎ»¶þ½øÖÆÊý-ÓàÊý£¬ÓÃÀ´²é±í
+;		é™¤æ³•ï¼Œå½“é™¤æ•°ä¸º10æ—¶ï¼Œå³äºŒè¿›åˆ¶-->BCDç è½¬æ¢
+;å…¥å£å‚æ•°ï¼šä¸€ä¸ªå…«ä½äºŒè¿›åˆ¶æ•°ä½œä¸ºè¢«é™¤æ•°(äº‹å…ˆéœ€è¦å°†è¢«é™¤æ•°ç§»å…¥W)ï¼Œä¸€ä¸ªé™¤æ•°
+;å‡ºå£å‚æ•°ï¼šä¸€ä¸ªå…«ä½äºŒè¿›åˆ¶æ•°-å•†ï¼Œä¸€ä¸ªå…«ä½äºŒè¿›åˆ¶æ•°-ä½™æ•°ï¼Œç”¨æ¥æŸ¥è¡¨
 ;=======================================================================
 
 DIV:
@@ -694,7 +682,7 @@ DIVLOOP:
 ;----------------------------------------
 
 ;****************************************
-;delayº¯Êý
+;delayå‡½æ•°
 ;****************************************
 DELAY100US:
 
@@ -709,10 +697,10 @@ DELAY100US:
 ;----------------------------------------
 
 ;****************************************
-;ÊýÂë¹Ü±í--¹²Òõ1G2DP3A4F526D7E8C9B101
+;æ•°ç ç®¡è¡¨--å…±é˜´1G2DP3A4F526D7E8C9B101
 ;****************************************	
 	ORG	0300H
-;¹²Òõ¼«ÊýÂë¹Ü
+;å…±é˜´æžæ•°ç ç®¡
 TABLE_DY_NE:			
 	
 	ADDWF	PCL,F
@@ -728,7 +716,7 @@ TABLE_DY_NE:
 	RETLW	B'01101111'	;9
 	RETLW	B'00000000'	;10-OFF DISPLAY
 	
-;¹²Ñô¼«ÊýÂë¹Ü	
+;å…±é˜³æžæ•°ç ç®¡	
 TABLE_DY_PE:			
 
 	ADDWF	PCL,F
@@ -747,7 +735,7 @@ TABLE_DY_PE:
 		
 ;********************************************  
 ;********************************************
-        ORG     03FFH                   ; ·ÉÁèµÄ²ÅÓÐÓÃ!        
+        ORG     03FFH                   ; é£žå‡Œçš„æ‰æœ‰ç”¨!        
         GOTO    RESET                           
         END
 

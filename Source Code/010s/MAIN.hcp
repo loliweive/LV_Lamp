@@ -10,19 +10,19 @@ File2=RAM.INC
 Device=HC18P010A
 ConfigBitValue0=1
 ConfigBitValue1=64
-ConfigBitValue2=246
+ConfigBitValue2=247
 Output=.
 PostBuild=0
 PostBuildCommand=
 ConfigBitValue3=0
 [Files]
-File0=G:\LV\LAMP\SOURCE CODE\010S\MAIN.ASM|3 50 932 50 499
-File1=G:\LV\LAMP\SOURCE CODE\010S\RAM.INC|1 25 907 25 474
+File0=C:\USERS\GREATAR\DESKTOP\LV_LAMP-MASTER\SOURCE CODE\010S\RAM.INC|3 75 458 75 524
+File1=MAIN.ASM|1 0 132 0 38
 OpenFileCounts=2
 [Break]
-Count=4
-BP0=1 367 1
-BP1=1 397 1
+Count=2
+BP0=1 439 1
+BP1=1 474 1
 BP2=1 403 1
 BP3=1 409 1
 [Watch0]

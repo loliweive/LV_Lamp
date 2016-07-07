@@ -1,3 +1,3 @@
 # LV_Lamp
 
-a new cangku
+7-7 口头下单2K，单价0.6
